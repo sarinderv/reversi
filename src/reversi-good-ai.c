@@ -13,9 +13,16 @@
 
 #define DEPTH 4
 
-int GoodAITurn(Board *b, int color)
+int GoodAITurnSequential(Board *b, int color)
 {
-    // Put your code for minimax here.
+    // Put your code for your sequential minimax algorithn here.
+
+    return 0;
+}
+
+int GoodAITurnParallel(Board *b, int color)
+{
+    // Put your code for your parallel minimax algorithm here.
 
     return 0;
 }
