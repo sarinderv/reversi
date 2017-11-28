@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <cilk/cilk_api.h>
 
 #include "hwtimer.h"
 #include "reversi.h"
@@ -249,7 +250,8 @@ int main()
 {
     srand(10);
 
-    /*  Uncomment the below line to introduce randomness into the SimpleAI.
+    /*
+        Uncomment the below line to introduce randomness into the SimpleAI.
         DO NOT UNCOMMENT IT while running experiments. The randomness introduced
         by modifying the SimpleAI is more than the change of parallelism.
     */

@@ -15,7 +15,7 @@
 
 int GoodAITurnSequential(Board *b, int color)
 {
-    // Put your code for your sequential minimax algorithn here.
+    // Put your code for your sequential minimax algorithm here.
 
     return 0;
 }

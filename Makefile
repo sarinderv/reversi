@@ -9,7 +9,7 @@ PREFIX=/home2/jlp/cilkplus-install/bin/
 CXX = $(PREFIX)gcc
 OUTPUT = reversi
 
-DEBUG = TRUE
+#DEBUG = TRUE
 
 BIN_DIR = ./bin
 INC_DIR = ./include
@@ -23,12 +23,13 @@ OBJS = $(OBJ_DIR)/hwtimer.o \
 	   $(OBJ_DIR)/reversi-good-ai.o
 
 INCLUDES += -I$(INC_DIR)
-CFLAGS = -Wall -Wextra $(INCLUDES) -fcilkplus -lcilkrts -std=c99
+
+CFLAGS = $(INCLUDES) -Wall -Wextra -fcilkplus -lcilkrts -std=c99
 
 ifdef DEBUG
 	CFLAGS += -g
 else
-	CFLAGS += -O2
+	CFLAGS += -O3
 endif
 
 all: directories $(BIN_DIR)/$(OUTPUT)
