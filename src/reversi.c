@@ -289,7 +289,7 @@ int main()
         */
         startTimer(&timer);
 
-        move_possible |= SimpleAITurn(&gameboard, O_WHITE);
+        move_possible |= GoodAITurnSequential(&gameboard, O_WHITE);
 
         stopTimer(&timer);
         totalTicks += getTimerTicks(&timer);
