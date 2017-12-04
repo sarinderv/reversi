@@ -12,10 +12,7 @@
 
 #include "reversi.h"
 
-#define DEPTH 4
-
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define DEPTH 1
 
 typedef enum { false, true } bool;
 
@@ -42,22 +39,38 @@ int tryMove(ull moves, int moveNum, int color, Board *b) {
     return nflips;
 }
 
-int minimax(Board *b, int depth, int color, bool maximizingPlayer)
+int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
 {
+    // alternate color depending on the depth
+    int color = maximizingPlayer ? startColor : OTHERCOLOR(startColor);
+    char c_c = color ==  X_BLACK ? 'X' : 'O';
     Board legal_moves;
     int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
-    if (depth <= 0 || num_moves <= 0)
-        return CountBitsOnBoard(b, color);
+    printf("at depth %d, %c has %d possible moves... ", depth, c_c, num_moves);
+    if (depth <= 0 || num_moves <= 0) {
+        int diff = CountBitsOnBoard(b, startColor) - CountBitsOnBoard(b, OTHERCOLOR(startColor));
+        printf("diff is %d bits.\n", diff);
+            return diff;
+    }
 
     ull moves = legal_moves.disks[color];
 
     if (maximizingPlayer) {
         int bestValue = INT_MIN;
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            int numFlips = tryMove(moves, moveNum, color, b);
+            Board c = *b; // copy
+            int numFlips = tryMove(moves, moveNum, color, &c);
+            printf("maximizingPlayer=%c, depth=%d, numFlips=%d\n", c_c, depth, numFlips);
+            PrintBoard(*b);
+            PrintBoard(c);
             if (numFlips > 0) {
-                int v = minimax(b, depth - 1, color, false);
-                bestValue = MAX(bestValue, v);
+                int v = minimax(&c, depth - 1, startColor, false);
+                printf("maximizingPlayer=%c, depth=%d, v=%d\n", c_c, depth, v);
+                if (v > bestValue) {
+                    bestValue = v;
+                    b = &c;
+                    printf("maximizingPlayer=%c, depth=%d, bestValue=%d\n", c_c, depth, bestValue);
+                }
             }
         }
         return bestValue;
@@ -65,10 +78,21 @@ int minimax(Board *b, int depth, int color, bool maximizingPlayer)
     else {
         int bestValue = INT_MAX;
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            int numFlips = tryMove(moves, moveNum, color, b); // should we pass a clone of 'b'?
+            Board c = *b; // copy
+            int numFlips = tryMove(moves, moveNum, color, &c);
+            printf("minimizingPlayer=%c, depth=%d, numFlips=%d\n", c_c, depth, numFlips);
+            PrintBoard(*b);
+            PrintBoard(c);
             if (numFlips > 0) {
-                int v = minimax(b, depth - 1, color, true);
-                bestValue = MIN(bestValue, v);
+                int v = minimax(&c, depth - 1, startColor, true);
+                printf("minimizingPlayer=%c, depth=%d, v=%d\n", c_c, depth, v);
+                if (v < bestValue) {
+                    bestValue = v;
+                    b = &c;
+                    printf("minimizingPlayer=%c, depth=%d, bestValue=%d\n", c_c, depth, bestValue);
+                    PrintBoard(*b);
+                    PrintBoard(c);
+                }
             }
         }
         return bestValue;
@@ -79,6 +103,7 @@ int GoodAITurnSequential(Board *b, int color)
 {
     int num_disks = minimax(b, DEPTH, color, true);
     printf("color %d has %d disks.\n", color, num_disks);
+    printf("color %d has %d disks.\n", OTHERCOLOR(color), num_disks);
 
     int num_moves = EnumerateLegalMoves(*b, color, b);
     return num_moves > 0 ? 1 : 0;

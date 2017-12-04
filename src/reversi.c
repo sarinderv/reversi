@@ -69,6 +69,7 @@ void PrintBoard(Board b)
 */
 void PlaceOrFlip(Move m, Board *b, int color)
 {
+    printf("move(%d, %d)\n", m.row, m.col);
     ull bit = MOVE_TO_BOARD_BIT(m);
     b->disks[color] |= bit;
     b->disks[OTHERCOLOR(color)] &= ~bit;
@@ -281,7 +282,7 @@ int main()
         move_possible |= SimpleAITurn(&gameboard, X_BLACK);
 
         // Uncomment the following line if you want to see the board after Black makes their move.
-        // PrintBoard(gameboard);
+        PrintBoard(gameboard);
 
         /*
             White is the player we are interested in.
@@ -297,7 +298,7 @@ int main()
         turns++;
 
         // Uncomment the following lines if you want to see the board after White makes their move.
-        // PrintBoard(gameboard);
+        PrintBoard(gameboard);
     } while(move_possible);
 
     printf("\n");
