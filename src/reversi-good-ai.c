@@ -31,10 +31,11 @@ int tryMove(ull moves, int moveNum, int color, Board *b) {
     Move m = BIT_TO_MOVE(highestBit);
 
     // Set the third parameter to 1, to echo disks flipped.
-    int nflips = FlipDisks(m, b, color, 1, 1);
+    int nflips = FlipDisks(m, b, color, 0, 1);
 
-    if (nflips > 0)
+    if (nflips > 0) {
         PlaceOrFlip(m, b, color);
+    }
 
     return nflips;
 }
@@ -46,12 +47,11 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
     char c_c = color ==  X_BLACK ? 'X' : 'O';
     Board legal_moves;
     int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
-    printf("at depth %d, %c has %d possible moves... ", depth, c_c, num_moves);
     if (depth <= 0 || num_moves <= 0) {
         int diff = CountBitsOnBoard(b, startColor) - CountBitsOnBoard(b, OTHERCOLOR(startColor));
-        printf("diff is %d bits.\n", diff);
-            return diff;
+        return diff;
     }
+    printf("at depth %d, %c has %d possible moves\n", depth, c_c, num_moves);
 
     ull moves = legal_moves.disks[color];
 
@@ -59,17 +59,16 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
         int bestValue = INT_MIN;
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
             Board c = *b; // copy
-            int numFlips = tryMove(moves, moveNum, color, &c);
-            printf("maximizingPlayer=%c, depth=%d, numFlips=%d\n", c_c, depth, numFlips);
-            PrintBoard(*b);
-            PrintBoard(c);
-            if (numFlips > 0) {
+            int nFlips = tryMove(moves, moveNum, color, &c);
+            //printf("maximizingPlayer=%c, depth=%d, move=(%d,%d) ... ", c_c, depth, m.row, m.col);
+            if (nFlips != 0) {
                 int v = minimax(&c, depth - 1, startColor, false);
-                printf("maximizingPlayer=%c, depth=%d, v=%d\n", c_c, depth, v);
                 if (v > bestValue) {
-                    bestValue = v;
+                    //PrintBoard(*b);
+                    //PrintBoard(c);
                     b = &c;
-                    printf("maximizingPlayer=%c, depth=%d, bestValue=%d\n", c_c, depth, bestValue);
+                    bestValue = v;
+                    printf("at depth %d, moveNum=%d for %c yielded the bestValue=%d (max)\n", depth, moveNum, c_c, bestValue);
                 }
             }
         }
@@ -79,19 +78,16 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
         int bestValue = INT_MAX;
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
             Board c = *b; // copy
-            int numFlips = tryMove(moves, moveNum, color, &c);
-            printf("minimizingPlayer=%c, depth=%d, numFlips=%d\n", c_c, depth, numFlips);
-            PrintBoard(*b);
-            PrintBoard(c);
-            if (numFlips > 0) {
-                int v = minimax(&c, depth - 1, startColor, true);
-                printf("minimizingPlayer=%c, depth=%d, v=%d\n", c_c, depth, v);
+            int nFlips = tryMove(moves, moveNum, color, &c);
+            //printf("minimizingPlayer=%c, depth=%d, move=(%d,%d) ... ", c_c, depth, m.row, m.col);
+            if (nFlips != 0) {
+                int v = minimax(&c, depth - 1, startColor, false);
                 if (v < bestValue) {
-                    bestValue = v;
+                    //PrintBoard(*b);
+                    //PrintBoard(c);
                     b = &c;
-                    printf("minimizingPlayer=%c, depth=%d, bestValue=%d\n", c_c, depth, bestValue);
-                    PrintBoard(*b);
-                    PrintBoard(c);
+                    bestValue = v;
+                    printf("at depth %d, moveNum=%d for %c yielded the bestValue=%d (min)\n", depth, moveNum, c_c, bestValue);
                 }
             }
         }
@@ -102,10 +98,9 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
 int GoodAITurnSequential(Board *b, int color)
 {
     int num_disks = minimax(b, DEPTH, color, true);
-    printf("color %d has %d disks.\n", color, num_disks);
-    printf("color %d has %d disks.\n", OTHERCOLOR(color), num_disks);
 
-    int num_moves = EnumerateLegalMoves(*b, color, b);
+    Board legal_moves;
+    int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
     return num_moves > 0 ? 1 : 0;
 }
 

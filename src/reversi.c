@@ -69,7 +69,6 @@ void PrintBoard(Board b)
 */
 void PlaceOrFlip(Move m, Board *b, int color)
 {
-    printf("move(%d, %d)\n", m.row, m.col);
     ull bit = MOVE_TO_BOARD_BIT(m);
     b->disks[color] |= bit;
     b->disks[OTHERCOLOR(color)] &= ~bit;
