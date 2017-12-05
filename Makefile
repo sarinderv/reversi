@@ -9,7 +9,7 @@ PREFIX=/home2/jlp/cilkplus-install/bin/
 CXX = $(PREFIX)gcc
 OUTPUT = reversi
 
-#DEBUG = TRUE
+DEBUG = TRUE
 
 BIN_DIR = ./bin
 INC_DIR = ./include

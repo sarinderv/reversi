@@ -9,12 +9,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+//#include <pthread.h>
 
 #include "reversi.h"
 
-#define DEPTH 4
+#define DEPTH 2
 
 typedef enum { false, true } bool;
+
+//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 Move toMove(ull moves, int moveNum)
 {
@@ -39,7 +42,6 @@ int tryMove(ull moves, int moveNum, int color, Board *b)
 
     // Set the third parameter to 1, to echo disks flipped.
     int nflips = FlipDisks(m, b, color, 0, 1);
-
     if (nflips > 0) {
         PlaceOrFlip(m, b, color);
     }
@@ -118,13 +120,17 @@ int p_minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
     ull moves = legal_moves.disks[color];
     int bestMoveNum = 0, bestValue = INT_MIN;
 
+    //pthread_mutex_lock(&mutex);
+    Board c = *b; // copy
+    //pthread_mutex_unlock(&mutex);
+
     if (maximizingPlayer) {
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            Board c = *b; // copy
             int nFlips = tryMove(moves, moveNum, color, &c);
             if (nFlips != 0) {
                 int v;
                 v = cilk_spawn p_minimax(&c, depth - 1, startColor, false);
+                cilk_sync;
                 if (v >= bestValue) {
                     bestValue = v;
                     bestMoveNum = moveNum;
@@ -135,11 +141,11 @@ int p_minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
     else {
         bestValue = INT_MAX;
         for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            Board c = *b; // copy
             int nFlips = tryMove(moves, moveNum, color, &c);
             if (nFlips != 0) {
                 int v;
                 v = cilk_spawn p_minimax(&c, depth - 1, startColor, true);
+                cilk_sync;
                 if (v <= bestValue) {
                     bestValue = v;
                     bestMoveNum = moveNum;
@@ -147,8 +153,6 @@ int p_minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
             }
         }
     }
-
-    cilk_sync;
 
     //Move move = toMove(moves, bestMoveNum);
     //printf("at depth %d, move(%d,%d) for %c yields %s value=%d\n",

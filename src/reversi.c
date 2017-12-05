@@ -246,8 +246,12 @@ void EndGame(Board b)
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    int parallel = 0;
+    if (argc > 1 && argv[1])
+        parallel = argv[1][0] == 'p' ? 1 : 0;
+
     srand(10);
 
     /*
@@ -273,7 +277,7 @@ int main()
     unsigned int turns = 0;
 
     int move_possible;
-    PrintBoard(gameboard);
+    //PrintBoard(gameboard);
 
     do
     {
@@ -289,7 +293,9 @@ int main()
         */
         startTimer(&timer);
 
-        move_possible |= GoodAITurnParallel(&gameboard, O_WHITE);
+        move_possible |= parallel == 1 ?
+                GoodAITurnParallel(&gameboard, O_WHITE) :
+                GoodAITurnSequential(&gameboard, O_WHITE);
 
         stopTimer(&timer);
         totalTicks += getTimerTicks(&timer);
@@ -297,8 +303,10 @@ int main()
         turns++;
 
         // Uncomment the following lines if you want to see the board after White makes their move.
-        PrintBoard(gameboard);
+        //PrintBoard(gameboard);
     } while(move_possible);
+
+    PrintBoard(gameboard);
 
     printf("\n");
     EndGame(gameboard);
