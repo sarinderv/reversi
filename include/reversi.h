@@ -66,6 +66,8 @@ char diskcolor[4];
 int HumanTurn(Board *b, int color);
 int SimpleAITurn(Board *b, int color);
 int GoodAITurn(Board *b, int color);
+int GoodAITurnParallel(Board *b, int color);
+int GoodAITurnSequential(Board *b, int color);
 
 // Auxilary functions exported from reversi.c.
 int EnumerateLegalMoves(Board b, int color, Board *legal_moves);

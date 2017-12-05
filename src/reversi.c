@@ -281,7 +281,7 @@ int main()
         move_possible |= SimpleAITurn(&gameboard, X_BLACK);
 
         // Uncomment the following line if you want to see the board after Black makes their move.
-        PrintBoard(gameboard);
+        //PrintBoard(gameboard);
 
         /*
             White is the player we are interested in.
@@ -289,7 +289,7 @@ int main()
         */
         startTimer(&timer);
 
-        move_possible |= GoodAITurnSequential(&gameboard, O_WHITE);
+        move_possible |= GoodAITurnParallel(&gameboard, O_WHITE);
 
         stopTimer(&timer);
         totalTicks += getTimerTicks(&timer);
