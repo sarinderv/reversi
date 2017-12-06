@@ -9,15 +9,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-//#include <pthread.h>
 
 #include "reversi.h"
 
-#define DEPTH 4
+#define DEPTH 2
 
 typedef enum { false, true } bool;
 
-//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 Move toMove(ull moves, int moveNum)
 {
@@ -57,60 +55,47 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer, int p)
     Board legal_moves;
     int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
     if (depth <= 0 || num_moves <= 0) {
-        int diff = CountBitsOnBoard(b, startColor) - CountBitsOnBoard(b, OTHERCOLOR(startColor));
-        return diff;
+        if (maximizingPlayer)
+            return CountBitsOnBoard(b, color) - CountBitsOnBoard(b, OTHERCOLOR(color));
+        else
+            return CountBitsOnBoard(b, OTHERCOLOR(color)) - CountBitsOnBoard(b, color);
     }
-    //printf("at depth %d, %c has %d possible moves\n", depth, c_c, num_moves);
+//    printf("at depth %d, %c has %d possible moves\n", depth, color ==  X_BLACK ? 'X' : 'O', num_moves);
 
     ull moves = legal_moves.disks[color];
-    int bestMoveNum = 0, bestValue = INT_MIN;
+    int bestMoveNum = 0, bestValue = maximizingPlayer ? INT_MIN : INT_MAX;
+    int v[num_moves];
+    Board c[num_moves*depth];
 
-    if (maximizingPlayer) {
-        for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            Board c = *b; // copy
-            int nFlips = tryMove(moves, moveNum, color, &c);
-            if (nFlips != 0) {
-                int v;
-                if (p) {
-                    v = cilk_spawn minimax(&c, depth - 1, startColor, false, p);
-                    cilk_sync;
-                }
-                else {
-                    v = minimax(&c, depth - 1, startColor, false, p);
-                }
-                if (v >= bestValue) {
-                    bestValue = v;
-                    bestMoveNum = moveNum;
-                }
+    for (int moveNum = 0; moveNum < num_moves; moveNum++) {
+        c[num_moves*depth] = *b; // copy /// RACE
+        int nFlips = tryMove(moves, moveNum, color, &c[num_moves*depth]);
+        if (nFlips != 0) {
+            if (p) {
+                //int vt; // temp var to avoid race condition
+                v[moveNum] = cilk_spawn minimax(&c[num_moves*depth], depth - 1, startColor, !maximizingPlayer, p);  ///RACE
+                //v[moveNum] = vt;
+            }
+            else {
+                v[moveNum] = minimax(&c[num_moves*depth], depth - 1, startColor, !maximizingPlayer, p);
             }
         }
     }
-    else {
-        bestValue = INT_MAX;
-        for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            Board c = *b; // copy
-            int nFlips = tryMove(moves, moveNum, color, &c);
-            if (nFlips != 0) {
-                int v;
-                if (p) {
-                    v = cilk_spawn minimax(&c, depth - 1, startColor, true, p);
-                    cilk_sync;
-                }
-                else {
-                    v = minimax(&c, depth - 1, startColor, true, p);
-                }
-                if (v <= bestValue) {
-                    bestValue = v;
-                    bestMoveNum = moveNum;
-                }
-            }
+    if (p)
+        cilk_sync;
+
+    for (int moveNum = 0; moveNum < num_moves; moveNum++) {
+        if ((maximizingPlayer && v[moveNum] >= bestValue) ||
+           (!maximizingPlayer && v[moveNum] <= bestValue)) {
+            bestValue = v[moveNum];
+            bestMoveNum = moveNum;
         }
     }
 
-    //Move move = toMove(moves, bestMoveNum);
-    //printf("at depth %d, move(%d,%d) for %c yields %s value=%d\n",
-    //       depth, move.row, move.col,
-    //       color ==  X_BLACK ? 'X' : 'O', maximizingPlayer ? "max" : "min", bestValue);
+//    Move move = toMove(moves, bestMoveNum);
+//    printf("at depth %d, move(%d,%d) for %c yields %s value=%d\n",
+//           depth, move.row, move.col,
+//           color ==  X_BLACK ? 'X' : 'O', maximizingPlayer ? "max" : "min", bestValue);
 
     if (depth == DEPTH) // reached the end, update the board now
         tryMove(moves, bestMoveNum, color, b);
