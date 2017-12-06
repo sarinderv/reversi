@@ -248,9 +248,10 @@ void EndGame(Board b)
 
 int main(int argc, char* argv[])
 {
-    int parallel = 0;
+    int parallel = 1; //run parallel by default
     if (argc > 1 && argv[1])
-        parallel = argv[1][0] == 'p' ? 1 : 0;
+        parallel = argv[1][0] == 's' ? 0 : 1; // run serial
+    //printf("running %s\n", parallel ? "parallel" : "serial");
 
     srand(10);
 
@@ -293,9 +294,7 @@ int main(int argc, char* argv[])
         */
         startTimer(&timer);
 
-        move_possible |= parallel == 1 ?
-                GoodAITurnParallel(&gameboard, O_WHITE) :
-                GoodAITurnSequential(&gameboard, O_WHITE);
+        move_possible |= GoodAITurn(&gameboard, O_WHITE, parallel);
 
         stopTimer(&timer);
         totalTicks += getTimerTicks(&timer);

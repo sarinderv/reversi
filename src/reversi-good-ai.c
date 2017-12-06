@@ -13,7 +13,7 @@
 
 #include "reversi.h"
 
-#define DEPTH 2
+#define DEPTH 4
 
 typedef enum { false, true } bool;
 
@@ -49,7 +49,7 @@ int tryMove(ull moves, int moveNum, int color, Board *b)
     return nflips;
 }
 
-int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
+int minimax(Board *b, int depth, int startColor, bool maximizingPlayer, int p)
 {
     // alternate color depending on the depth
     int color = maximizingPlayer ? startColor : OTHERCOLOR(startColor);
@@ -70,7 +70,14 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
             Board c = *b; // copy
             int nFlips = tryMove(moves, moveNum, color, &c);
             if (nFlips != 0) {
-                int v = minimax(&c, depth - 1, startColor, false);
+                int v;
+                if (p) {
+                    v = cilk_spawn minimax(&c, depth - 1, startColor, false, p);
+                    cilk_sync;
+                }
+                else {
+                    v = minimax(&c, depth - 1, startColor, false, p);
+                }
                 if (v >= bestValue) {
                     bestValue = v;
                     bestMoveNum = moveNum;
@@ -84,7 +91,14 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
             Board c = *b; // copy
             int nFlips = tryMove(moves, moveNum, color, &c);
             if (nFlips != 0) {
-                int v = minimax(&c, depth - 1, startColor, true);
+                int v;
+                if (p) {
+                    v = cilk_spawn minimax(&c, depth - 1, startColor, true, p);
+                    cilk_sync;
+                }
+                else {
+                    v = minimax(&c, depth - 1, startColor, true, p);
+                }
                 if (v <= bestValue) {
                     bestValue = v;
                     bestMoveNum = moveNum;
@@ -104,80 +118,9 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
     return bestValue;
 }
 
-int p_minimax(Board *b, int depth, int startColor, bool maximizingPlayer)
+int GoodAITurn(Board *b, int color, int p)
 {
-    // alternate color depending on the depth
-    int color = maximizingPlayer ? startColor : OTHERCOLOR(startColor);
-
-    Board legal_moves;
-    int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
-    if (depth <= 0 || num_moves <= 0) {
-        int diff = CountBitsOnBoard(b, startColor) - CountBitsOnBoard(b, OTHERCOLOR(startColor));
-        return diff;
-    }
-    //printf("at depth %d, %c has %d possible moves\n", depth, c_c, num_moves);
-
-    ull moves = legal_moves.disks[color];
-    int bestMoveNum = 0, bestValue = INT_MIN;
-
-    //pthread_mutex_lock(&mutex);
-    Board c = *b; // copy
-    //pthread_mutex_unlock(&mutex);
-
-    if (maximizingPlayer) {
-        for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            int nFlips = tryMove(moves, moveNum, color, &c);
-            if (nFlips != 0) {
-                int v;
-                v = cilk_spawn p_minimax(&c, depth - 1, startColor, false);
-                cilk_sync;
-                if (v >= bestValue) {
-                    bestValue = v;
-                    bestMoveNum = moveNum;
-                }
-            }
-        }
-    }
-    else {
-        bestValue = INT_MAX;
-        for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-            int nFlips = tryMove(moves, moveNum, color, &c);
-            if (nFlips != 0) {
-                int v;
-                v = cilk_spawn p_minimax(&c, depth - 1, startColor, true);
-                cilk_sync;
-                if (v <= bestValue) {
-                    bestValue = v;
-                    bestMoveNum = moveNum;
-                }
-            }
-        }
-    }
-
-    //Move move = toMove(moves, bestMoveNum);
-    //printf("at depth %d, move(%d,%d) for %c yields %s value=%d\n",
-    //       depth, move.row, move.col,
-    //       color ==  X_BLACK ? 'X' : 'O', maximizingPlayer ? "max" : "min", bestValue);
-
-    if (depth == DEPTH) // reached the end, update the board now
-        tryMove(moves, bestMoveNum, color, b);
-
-    return bestValue;
-}
-
-int GoodAITurnSequential(Board *b, int color)
-{
-    minimax(b, DEPTH, color, true);
-
-    Board legal_moves;
-    int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
-    return num_moves > 0 ? 1 : 0;
-}
-
-
-int GoodAITurnParallel(Board *b, int color)
-{
-    p_minimax(b, DEPTH, color, true);
+    minimax(b, DEPTH, color, true, p);
 
     Board legal_moves;
     int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
