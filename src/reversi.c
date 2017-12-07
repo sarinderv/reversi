@@ -261,7 +261,7 @@ int main(int argc, char* argv[])
         by modifying the SimpleAI is more than the change of parallelism.
     */
 
-    // srand(time(NULL));
+    //srand(time(NULL));
 
     // Starting gameboard.
     Board gameboard =

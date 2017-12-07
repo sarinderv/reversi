@@ -12,7 +12,7 @@
 
 #include "reversi.h"
 
-#define DEPTH 2
+#define DEPTH 1
 
 typedef enum { false, true } bool;
 
@@ -55,38 +55,31 @@ int minimax(Board *b, int depth, int startColor, bool maximizingPlayer, int p)
     Board legal_moves;
     int num_moves = EnumerateLegalMoves(*b, color, &legal_moves);
     if (depth <= 0 || num_moves <= 0) {
-        if (maximizingPlayer)
-            return CountBitsOnBoard(b, color) - CountBitsOnBoard(b, OTHERCOLOR(color));
-        else
-            return CountBitsOnBoard(b, OTHERCOLOR(color)) - CountBitsOnBoard(b, color);
+        return CountBitsOnBoard(b, startColor) - CountBitsOnBoard(b, OTHERCOLOR(startColor));
     }
 //    printf("at depth %d, %c has %d possible moves\n", depth, color ==  X_BLACK ? 'X' : 'O', num_moves);
 
     ull moves = legal_moves.disks[color];
     int bestMoveNum = 0, bestValue = maximizingPlayer ? INT_MIN : INT_MAX;
-    int v[num_moves];
-    Board c[num_moves*depth];
+    int v[num_moves]; // avoid race
+    Board c[num_moves*depth]; // avoid race
 
     for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-        c[num_moves*depth] = *b; // copy /// RACE
-        int nFlips = tryMove(moves, moveNum, color, &c[num_moves*depth]);
+        c[moveNum] = *b; // copy
+        int nFlips = tryMove(moves, moveNum, color, &c[moveNum]);
         if (nFlips != 0) {
-            if (p) {
-                //int vt; // temp var to avoid race condition
-                v[moveNum] = cilk_spawn minimax(&c[num_moves*depth], depth - 1, startColor, !maximizingPlayer, p);  ///RACE
-                //v[moveNum] = vt;
-            }
-            else {
-                v[moveNum] = minimax(&c[num_moves*depth], depth - 1, startColor, !maximizingPlayer, p);
-            }
+            if (p)
+                v[moveNum] = cilk_spawn minimax(&c[moveNum], depth - 1, startColor, !maximizingPlayer, p);
+            else
+                v[moveNum] = minimax(&c[moveNum], depth - 1, startColor, !maximizingPlayer, p);
         }
     }
     if (p)
         cilk_sync;
 
     for (int moveNum = 0; moveNum < num_moves; moveNum++) {
-        if ((maximizingPlayer && v[moveNum] >= bestValue) ||
-           (!maximizingPlayer && v[moveNum] <= bestValue)) {
+        if ((maximizingPlayer && v[moveNum] >= bestValue) || // maximize
+           (!maximizingPlayer && v[moveNum] <= bestValue)) { // minimize
             bestValue = v[moveNum];
             bestMoveNum = moveNum;
         }
